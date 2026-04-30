@@ -1,0 +1,97 @@
+Bootstrap: docker
+From: ubuntu:22.04
+
+%labels
+    Maintainer DELTA Lab
+    Version 0.1.0
+    Description DICOM to BIDS conversion pipeline with Python and R
+
+%post
+    # Prevent interactive prompts during install
+    export DEBIAN_FRONTEND=noninteractive
+    export TZ=UTC
+
+    apt-get update -q && apt-get install -y -q \
+        python3 \
+        python3-pip \
+        python3-venv \
+        curl \
+        unzip \
+        git \
+        pigz \
+        wget \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    # Install dcm2niix (latest binary from GitHub)
+    DCM2NIIX_VERSION="v1.0.20240202"
+    curl -fsSL "https://github.com/rordenlab/dcm2niix/releases/download/${DCM2NIIX_VERSION}/dcm2niix_lnx.zip" \
+        -o /tmp/dcm2niix.zip
+    unzip -j /tmp/dcm2niix.zip dcm2niix -d /usr/local/bin/
+    chmod +x /usr/local/bin/dcm2niix
+    rm /tmp/dcm2niix.zip
+
+    # Install Python packages
+    pip3 install --no-cache-dir \
+        dcm2bids==3.2.0 \
+        nibabel \
+        nilearn \
+        pandas \
+        numpy \
+        scipy \
+        matplotlib \
+        pydicom
+
+    # Install R
+    apt-get update -q && apt-get install -y -q r-base r-base-dev \
+        && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    # Install R packages
+    Rscript -e "install.packages(c('oro.nifti', 'neurobase', 'tidyverse', 'ggplot2'), repos='https://cloud.r-project.org', quiet=TRUE)"
+
+    # Copy pipeline source into image
+    mkdir -p /opt/delta/src /opt/delta/configs
+
+%files
+    src/cli.py        /opt/delta/src/cli.py
+    src/state.py      /opt/delta/src/state.py
+    src/convert.py    /opt/delta/src/convert.py
+    src/helper.py     /opt/delta/src/helper.py
+    src/preprocess.py /opt/delta/src/preprocess.py
+    src/analyze.py    /opt/delta/src/analyze.py
+
+%environment
+    export PATH="/usr/local/bin:$PATH"
+    export PYTHONPATH="/opt/delta/src:$PYTHONPATH"
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+
+%runscript
+    cd /opt/delta/src
+    exec python3 cli.py "$@"
+
+%apprun convert
+    cd /opt/delta/src
+    exec python3 cli.py convert "$@"
+
+%apprun helper
+    cd /opt/delta/src
+    exec python3 cli.py helper "$@"
+
+%apprun status
+    cd /opt/delta/src
+    exec python3 cli.py status "$@"
+
+%apprun analyze
+    cd /opt/delta/src
+    exec python3 cli.py analyze "$@"
+
+%help
+    DELTA Neuroimaging Pipeline — DICOM to BIDS conversion
+
+    Usage:
+      apptainer run delta.sif convert --raw /data/raw --bids /data/bids --config config.json
+      apptainer run delta.sif status --state delta_state.json
+      apptainer run delta.sif helper --dicom /data/raw/sub-01/ses-01
+
+    Or use the interactive launcher:
+      ./launch.sh
