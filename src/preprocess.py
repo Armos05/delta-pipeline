@@ -8,6 +8,19 @@ from pathlib import Path
 from state import load_state, save_state, needs_fmriprep, mark_fmriprep_done
 
 
+def _check_not_in_container() -> None:
+    """Warn and exit if called from inside an Apptainer/Singularity container.
+    Nested apptainer fails due to missing host shared libraries in the container."""
+    import os
+    if os.environ.get("APPTAINER_CONTAINER") or os.environ.get("SINGULARITY_CONTAINER"):
+        print("ERROR: preprocess must be run on the host, not inside delta.sif.")
+        print("Nested Apptainer fails due to missing host libraries.")
+        print("")
+        print("Run directly on the host:")
+        print("  python3 /path/to/src/cli.py preprocess --bids ... --output ... [args]")
+        sys.exit(1)
+
+
 def _find_apptainer() -> str | None:
     for binary in ("apptainer", "singularity"):
         found = shutil.which(binary)
@@ -68,6 +81,8 @@ def run_preprocess(args) -> None:
     state_file = Path(args.state)
     force = args.force
     dry_run = args.dry_run
+
+    _check_not_in_container()
 
     if not bids_dir.exists():
         print(f"ERROR: BIDS dir not found: {bids_dir}")
