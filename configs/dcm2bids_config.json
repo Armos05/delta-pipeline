@@ -156,9 +156,7 @@
       "datatype": "fmap",
       "suffix": "phasediff",
       "sidecar_changes": {
-        "B0FieldIdentifier": "gre_fmap",
-        "EchoTime1": 0.00306,
-        "EchoTime2": 0.00408
+        "B0FieldIdentifier": "gre_fmap"
       },
       "criteria": {
         "SeriesDescription": "gre_field_mapping_tra",

@@ -87,6 +87,38 @@ def run_nm_conversion(dicom_dir: Path, bids_dir: Path, subject: str, session: st
     return result.returncode == 0
 
 
+def patch_phasediff_echotimes(bids_dir: Path, subject: str, session: str) -> None:
+    """Read EchoTime from magnitude1/2 JSONs and write EchoTime1/EchoTime2 into phasediff JSON.
+    Needed because dcm2bids sidecar_changes is static — values can't be derived at config time."""
+    fmap_dir = bids_dir / subject / session / "fmap"
+    if not fmap_dir.exists():
+        return
+
+    mag1 = next(fmap_dir.glob("*_magnitude1.json"), None)
+    mag2 = next(fmap_dir.glob("*_magnitude2.json"), None)
+    phasediff = next(fmap_dir.glob("*_phasediff.json"), None)
+
+    if not (mag1 and mag2 and phasediff):
+        return
+
+    with open(mag1) as f:
+        et1 = json.load(f).get("EchoTime")
+    with open(mag2) as f:
+        et2 = json.load(f).get("EchoTime")
+
+    if et1 is None or et2 is None:
+        print(f"  WARN  EchoTime missing in magnitude JSONs — phasediff EchoTime1/2 not patched")
+        return
+
+    with open(phasediff) as f:
+        pd_data = json.load(f)
+    pd_data["EchoTime1"] = et1
+    pd_data["EchoTime2"] = et2
+    with open(phasediff, "w") as f:
+        json.dump(pd_data, f, indent=2)
+    print(f"  FMAP  phasediff patched — EchoTime1={et1} EchoTime2={et2}")
+
+
 def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, session: str) -> bool:
     """Run dcm2bids for one subject/session. Returns True on success."""
     # dcm2bids expects subject ID without the 'sub-' prefix
@@ -165,6 +197,7 @@ def run_convert(args) -> None:
 
             success = run_dcm2bids(raw_dir, bids_dir, config, subject, session)
             if success:
+                patch_phasediff_echotimes(bids_dir, subject, session)
                 success = run_nm_conversion(dicom_dir, bids_dir, subject, session)
 
             if success:
