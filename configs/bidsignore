@@ -1,0 +1,10 @@
+# MRS — non-standard BIDS, handled separately via spec2nii
+sub-*/ses-*/mrs/
+sub-*/ses-*/mrs/*
+sub-*/ses-*/mrs/**
+**/*.dat
+
+# NM/MT (Neuromelanin) — non-standard BIDS, handled separately via dcm2niix
+sub-*/ses-*/nm/
+sub-*/ses-*/nm/*
+sub-*/ses-*/nm/**

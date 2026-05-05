@@ -1,0 +1,189 @@
+{
+  "descriptions": [
+    {
+      "datatype": "anat",
+      "suffix": "T1w",
+      "id": "id_T1w",
+      "criteria": {
+        "SeriesDescription": "t1_mp2rage_sag_iso07_UNI-DEN"
+      }
+    },
+    {
+      "datatype": "anat",
+      "suffix": "T2w",
+      "criteria": {
+        "SeriesDescription": "t2_haste_sag_scout"
+      }
+    },
+    {
+      "datatype": "func",
+      "suffix": "bold",
+      "custom_entities": "task-podcast",
+      "id": "id_podcast_bold",
+      "sidecar_changes": {
+        "TaskName": "podcast",
+        "B0FieldSource": "pe_polar_podcast"
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_podcast"
+      }
+    },
+    {
+      "datatype": "func",
+      "suffix": "bold",
+      "custom_entities": "task-rest",
+      "id": "id_rest_bold",
+      "sidecar_changes": {
+        "TaskName": "rest",
+        "B0FieldSource": "pe_polar_rest"
+      },
+      "criteria": {
+        "SeriesDescription": "rs_cmrr_1p5_fs_300_dyn"
+      }
+    },
+    {
+      "datatype": "func",
+      "suffix": "bold",
+      "custom_entities": "task-rest",
+      "id": "id_rest_bold_380",
+      "sidecar_changes": {
+        "TaskName": "rest",
+        "B0FieldSource": "pe_polar_rest"
+      },
+      "criteria": {
+        "SeriesDescription": "rs_cmrr_1p5_fs_380_dyn"
+      }
+    },
+    {
+      "datatype": "func",
+      "suffix": "bold",
+      "custom_entities": "task-thresholding",
+      "id": "id_thresholding_bold",
+      "sidecar_changes": {
+        "TaskName": "thresholding"
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_ref_thresholding"
+      }
+    },
+    {
+      "datatype": "func",
+      "suffix": "bold",
+      "custom_entities": "task-sentencecompletion",
+      "id": "id_sentencecompletion_bold",
+      "sidecar_changes": {
+        "TaskName": "sentencecompletion",
+        "B0FieldSource": "pe_polar_sentencecompletion"
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_completion_task"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "epi",
+      "custom_entities": "acq-podcast_dir-AP",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "pe_polar_podcast",
+        "IntendedFor": ["id_podcast_bold"]
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_ref_podcast",
+        "PhaseEncodingDirection": "j-"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "epi",
+      "custom_entities": "acq-podcast_dir-PA",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "pe_polar_podcast",
+        "IntendedFor": ["id_podcast_bold"]
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_ref_podcast_PA"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "epi",
+      "custom_entities": "acq-rest_dir-PA",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "pe_polar_rest",
+        "IntendedFor": ["id_rest_bold"]
+      },
+      "criteria": {
+        "SeriesDescription": "rs_cmrr_1p5_fs_PA"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "epi",
+      "custom_entities": "acq-sentencecompletion_dir-PA",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "pe_polar_sentencecompletion",
+        "IntendedFor": ["id_sentencecompletion_bold"]
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_bold_tra_p2_ref_PA"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "magnitude1",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "gre_fmap"
+      },
+      "criteria": {
+        "SeriesDescription": "gre_field_mapping_tra",
+        "EchoNumber": 1,
+        "ImageType": ["ORIGINAL", "PRIMARY", "M", "NONE"]
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "magnitude2",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "gre_fmap"
+      },
+      "criteria": {
+        "SeriesDescription": "gre_field_mapping_tra",
+        "EchoNumber": 2,
+        "ImageType": ["ORIGINAL", "PRIMARY", "M", "NONE"]
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "phasediff",
+      "sidecar_changes": {
+        "B0FieldIdentifier": "gre_fmap",
+        "EchoTime1": 0.00306,
+        "EchoTime2": 0.00408
+      },
+      "criteria": {
+        "SeriesDescription": "gre_field_mapping_tra",
+        "ImageType": ["ORIGINAL", "PRIMARY", "P", "NONE", "PHASE"]
+      }
+    },
+    {
+      "datatype": "dwi",
+      "suffix": "dwi",
+      "custom_entities": "dir-AP",
+      "id": "id_dwi_AP",
+      "criteria": {
+        "SeriesDescription": "ep2d_diff_b2000_q64_AP"
+      }
+    },
+    {
+      "datatype": "fmap",
+      "suffix": "epi",
+      "custom_entities": "acq-dwi_dir-PA",
+      "sidecar_changes": {
+        "IntendedFor": ["id_dwi_AP"]
+      },
+      "criteria": {
+        "SeriesDescription": "ep2d_diff_b2000_q64_PA"
+      }
+    }
+  ]
+}

@@ -52,12 +52,15 @@ From: ubuntu:22.04
     mkdir -p /opt/delta/src /opt/delta/configs
 
 %files
-    src/cli.py        /opt/delta/src/cli.py
-    src/state.py      /opt/delta/src/state.py
-    src/convert.py    /opt/delta/src/convert.py
-    src/helper.py     /opt/delta/src/helper.py
-    src/preprocess.py /opt/delta/src/preprocess.py
-    src/analyze.py    /opt/delta/src/analyze.py
+    src/cli.py                          /opt/delta/src/cli.py
+    src/state.py                        /opt/delta/src/state.py
+    src/convert.py                      /opt/delta/src/convert.py
+    src/helper.py                       /opt/delta/src/helper.py
+    src/preprocess.py                   /opt/delta/src/preprocess.py
+    src/analyze.py                      /opt/delta/src/analyze.py
+    configs/dcm2bids_config.json        /opt/delta/configs/dcm2bids_config.json
+    configs/dataset_description.json    /opt/delta/configs/dataset_description.json
+    configs/bidsignore                  /opt/delta/configs/bidsignore
 
 %environment
     export PATH="/usr/local/bin:$PATH"

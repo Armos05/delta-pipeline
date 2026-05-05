@@ -3,6 +3,8 @@ convert.py — Wraps dcm2bids to convert DICOM → BIDS incrementally.
 Only processes subjects/sessions not already in delta_state.json.
 """
 
+import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -10,7 +12,24 @@ from pathlib import Path
 from state import load_state, save_state, needs_conversion, mark_converted
 
 
-MODALITY_FOLDERS = ["T1", "fMRI", "DTI", "MRSpec", "Neuromelanin"]
+MODALITY_FOLDERS = ["anat", "func", "fmap", "dwi"]
+
+
+def init_bids_root(bids_dir: Path, configs_dir: Path) -> None:
+    """Write dataset_description.json and .bidsignore to BIDS root if absent.
+
+    Copies from configs_dir (same folder as the dcm2bids config file),
+    so this works both on the host and inside the Apptainer container.
+    """
+    desc_src = configs_dir / "dataset_description.json"
+    desc_dst = bids_dir / "dataset_description.json"
+    if desc_src.exists() and not desc_dst.exists():
+        shutil.copy(desc_src, desc_dst)
+
+    ignore_src = configs_dir / "bidsignore"
+    ignore_dst = bids_dir / ".bidsignore"
+    if ignore_src.exists() and not ignore_dst.exists():
+        shutil.copy(ignore_src, ignore_dst)
 
 
 def discover_subjects(raw_dir: Path) -> list[str]:
@@ -30,6 +49,44 @@ def discover_sessions(subject_dir: Path) -> list[str]:
     return sessions if sessions else ["ses-01"]
 
 
+def find_nm_dicom(session_dicom_dir: Path) -> Path | None:
+    """Return primary fl3d_mt_tra_tr55 DICOM folder; skip MPR/ND reconstructions."""
+    candidates = sorted(
+        d for d in session_dicom_dir.iterdir()
+        if d.is_dir()
+        and d.name.startswith("fl3d_mt_tra_tr55")
+        and "_MPR_" not in d.name
+        and "_ND" not in d.name
+    )
+    return candidates[0] if candidates else None
+
+
+def run_nm_conversion(dicom_dir: Path, bids_dir: Path, subject: str, session: str) -> bool:
+    """Run dcm2niix on NM DICOM → bids_dir/sub-XX/ses-XX/nm/. Returns True on success."""
+    nm_dicom = find_nm_dicom(dicom_dir)
+    if nm_dicom is None:
+        print(f"  NM    no fl3d_mt_tra_tr55 folder found in {dicom_dir}, skipping")
+        return True
+
+    subject_id = subject.removeprefix("sub-")
+    session_id = session.removeprefix("ses-")
+    nm_out = bids_dir / subject / session / "nm"
+    nm_out.mkdir(parents=True, exist_ok=True)
+
+    filename = f"sub-{subject_id}_ses-{session_id}_NM"
+    cmd = [
+        "dcm2niix",
+        "-z", "y",
+        "-f", filename,
+        "-o", str(nm_out),
+        str(nm_dicom),
+    ]
+
+    print(f"  NM    {nm_dicom.name} → nm/")
+    result = subprocess.run(cmd, capture_output=False, text=True)
+    return result.returncode == 0
+
+
 def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, session: str) -> bool:
     """Run dcm2bids for one subject/session. Returns True on success."""
     # dcm2bids expects subject ID without the 'sub-' prefix
@@ -47,8 +104,7 @@ def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, sess
         "--session", session_id,
         "--config", str(config),
         "--output_dir", str(bids_dir),
-        "--force_dcm2niix",
-        "--skip_validate",
+        "--clobber",
     ]
 
     print(f"  Running: {' '.join(cmd)}")
@@ -72,6 +128,7 @@ def run_convert(args) -> None:
         sys.exit(1)
 
     bids_dir.mkdir(parents=True, exist_ok=True)
+    init_bids_root(bids_dir, config.parent)
     state = load_state(state_file)
 
     subjects = args.subjects if args.subjects else discover_subjects(raw_dir)
@@ -107,6 +164,8 @@ def run_convert(args) -> None:
                 continue
 
             success = run_dcm2bids(raw_dir, bids_dir, config, subject, session)
+            if success:
+                success = run_nm_conversion(dicom_dir, bids_dir, subject, session)
 
             if success:
                 mark_converted(state, subject, session, dicom_dir, MODALITY_FOLDERS)
@@ -114,7 +173,7 @@ def run_convert(args) -> None:
                 print(f"  DONE  {subject}/{session}")
                 converted_count += 1
             else:
-                print(f"  FAIL  {subject}/{session} — check dcm2bids output above")
+                print(f"  FAIL  {subject}/{session} — check output above")
                 failed.append(f"{subject}/{session}")
 
     print(f"\nSummary: {converted_count} converted, {skipped_count} skipped, {len(failed)} failed")

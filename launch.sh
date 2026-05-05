@@ -125,6 +125,8 @@ apptainer exec \
     --bind "$RAW_DIR":"$RAW_DIR":ro \
     --bind "$BIDS_DIR":"$BIDS_DIR" \
     --bind "$SCRIPT_DIR":"$SCRIPT_DIR" \
+    --bind "$SCRIPT_DIR/src:/opt/delta/src" \
+    --bind "$SCRIPT_DIR/configs:/opt/delta/configs" \
     "$SIF" \
     python /opt/delta/src/cli.py convert "${CONVERT_ARGS[@]}"
 

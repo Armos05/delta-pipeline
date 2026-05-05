@@ -1,0 +1,6 @@
+{
+    "Name": "DELTA Dataset",
+    "BIDSVersion": "1.9.0",
+    "DatasetType": "raw",
+    "Authors": ["Akhil Ratan Misra", "Finn Lennart Rabe"]
+}
