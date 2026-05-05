@@ -127,6 +127,8 @@ apptainer exec \
     --bind "$SCRIPT_DIR":"$SCRIPT_DIR" \
     --bind "$SCRIPT_DIR/src:/opt/delta/src" \
     --bind "$SCRIPT_DIR/configs:/opt/delta/configs" \
+    --bind /mnt/data/docker:/mnt/data/docker \
+    --bind /usr/bin/apptainer:/usr/bin/apptainer \
     "$SIF" \
     python /opt/delta/src/cli.py convert "${CONVERT_ARGS[@]}"
 
