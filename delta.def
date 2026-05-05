@@ -58,6 +58,7 @@ From: ubuntu:22.04
     src/helper.py                       /opt/delta/src/helper.py
     src/preprocess.py                   /opt/delta/src/preprocess.py
     src/analyze.py                      /opt/delta/src/analyze.py
+    src/validate.py                     /opt/delta/src/validate.py
     configs/dcm2bids_config.json        /opt/delta/configs/dcm2bids_config.json
     configs/dataset_description.json    /opt/delta/configs/dataset_description.json
     configs/bidsignore                  /opt/delta/configs/bidsignore
@@ -87,6 +88,10 @@ From: ubuntu:22.04
 %apprun analyze
     cd /opt/delta/src
     exec python3 cli.py analyze "$@"
+
+%apprun bids-validator
+    cd /opt/delta/src
+    exec python3 cli.py bids-validator "$@"
 
 %help
     DELTA Neuroimaging Pipeline — DICOM to BIDS conversion
