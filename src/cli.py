@@ -32,12 +32,20 @@ def build_parser() -> argparse.ArgumentParser:
     prep = subparsers.add_parser("preprocess", help="Run fMRIPrep on converted subjects")
     prep.add_argument("--bids", required=True, help="BIDS directory")
     prep.add_argument("--output", required=True, help="Derivatives output directory")
-    prep.add_argument("--fmriprep-sif", required=True, help="Path to fmriprep.sif")
-    prep.add_argument("--fs-license", required=True, help="FreeSurfer license file")
+    prep.add_argument("--fmriprep-sif", default="/mnt/data/docker/fmriprep-25.2.4.sif",
+                      help="Path to fmriprep .sif (default: /mnt/data/docker/fmriprep-25.2.4.sif)")
+    prep.add_argument("--fs-license", default="/mnt/data/freesurfer/freesurfer/license.txt",
+                      help="FreeSurfer license file")
+    prep.add_argument("--work-dir", default="/tmp/fmriprep_work",
+                      help="fMRIPrep working directory (default: /tmp/fmriprep_work)")
+    prep.add_argument("--output-spaces", default="T1w",
+                      help="fMRIPrep --output-spaces (default: T1w)")
     prep.add_argument("--subjects", nargs="+", default=None, help="Subject IDs (default: all converted)")
     prep.add_argument("--state", default="delta_state.json", help="State file path")
     prep.add_argument("--force", action="store_true", help="Re-preprocess even if already done")
     prep.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
+    prep.add_argument("--fs-reconall", action="store_true",
+                      help="Enable FreeSurfer recon-all (disabled by default)")
 
     # --- analyze ---
     anal = subparsers.add_parser("analyze", help="Run a Python or R analysis script")

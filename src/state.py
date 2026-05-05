@@ -67,6 +67,23 @@ def mark_preprocessed(state: dict, subject: str, session: str) -> None:
     entry["preprocessed_at"] = datetime.now().isoformat()
 
 
+def mark_fmriprep_done(state: dict, subject: str) -> None:
+    """Record that fMRIPrep has completed for a subject (all sessions)."""
+    if subject not in state["subjects"]:
+        state["subjects"][subject] = {}
+    state["subjects"][subject]["_fmriprep"] = {
+        "done": True,
+        "preprocessed_at": datetime.now().isoformat(),
+    }
+
+
+def needs_fmriprep(state: dict, subject: str, force: bool = False) -> bool:
+    """Return True if fMRIPrep has not yet run for this subject."""
+    if force:
+        return True
+    return not state.get("subjects", {}).get(subject, {}).get("_fmriprep", {}).get("done", False)
+
+
 def needs_conversion(state: dict, subject: str, session: str, dicom_dir: Path, force: bool = False) -> bool:
     """Return True if this subject/session needs (re)conversion."""
     if force:
