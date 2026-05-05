@@ -80,10 +80,14 @@ def run_preprocess(args) -> None:
         sys.exit(1)
 
     state = load_state(state_file)
-    subjects = args.subjects if args.subjects else list(state.get("subjects", {}).keys())
+
+    if args.subjects:
+        subjects = args.subjects
+    else:
+        subjects = sorted(d.name for d in bids_dir.iterdir() if d.is_dir() and d.name.startswith("sub-"))
 
     if not subjects:
-        print("No subjects in state. Run convert first.")
+        print(f"No sub-* directories found in {bids_dir}")
         sys.exit(1)
 
     print(f"\nDELTA Preprocess — {len(subjects)} subject(s)")
