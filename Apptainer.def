@@ -1,0 +1,60 @@
+Bootstrap: docker
+From: python:3.11-slim
+
+%labels
+    Author        DELTA pipeline
+    Description   DICOM→BIDS→fMRIPrep→Physio neuroimaging pipeline
+    Version       2.0.0
+
+%post
+    # System packages
+    apt-get update && apt-get install -y --no-install-recommends \
+        dcm2niix curl git && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+    # Python packages (no MATLAB, no TAPAS)
+    pip install --no-cache-dir \
+        dcm2bids==3.2.0 \
+        nibabel>=5.0 \
+        numpy>=1.26 \
+        scipy>=1.12
+
+    # bids-validator via Deno (optional, graceful failure)
+    curl -fsSL https://deno.land/install.sh | sh || true
+    /root/.deno/bin/deno install --allow-all --no-check \
+        -n bids-validator-deno \
+        npm:bids-validator@1.14.6 2>/dev/null || true
+
+    # Pipeline source is bind-mounted at runtime (see %runscript)
+    mkdir -p /opt/delta/src /opt/delta/configs
+
+%environment
+    export PATH="/root/.deno/bin:${PATH}"
+    export PYTHONPATH="/opt/delta/src:${PYTHONPATH}"
+
+%runscript
+    # Called as: apptainer run delta.sif <command> [options]
+    exec python3 /opt/delta/src/cli.py "$@"
+
+%help
+    DELTA neuroimaging pipeline container.
+
+    Bind-mount your source directory to /opt/delta/src so that code changes
+    take effect without rebuilding:
+
+        apptainer run \
+            --bind /path/to/src:/opt/delta/src \
+            --bind /path/to/bids:/data/bids \
+            delta.sif physio \
+                --bids /data/bids \
+                --tasks sentencecompletion
+
+    Physio source data expected at:
+        <bids>/sourcedata/physio/sub-XX/ses-XX/
+            sub-XX_ses-XX_task-<task>_recording-cardiac_physio.puls
+            sub-XX_ses-XX_task-<task>_recording-respiratory_physio.resp
+
+    Output written to:
+        <bids>/sub-XX/ses-XX/func/
+            sub-XX_ses-XX_task-<task>_desc-retroicor_regressors.tsv
+            sub-XX_ses-XX_task-<task>_desc-retroicor_regressors.json
