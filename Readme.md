@@ -525,6 +525,7 @@ apptainer exec --bind /data:/data delta.sif \
 | `joblib` | Parallelisation / caching |
 | `matplotlib` | Visualisation |
 | `rstan`, `dplyr`, `ggplot2`, `tidyr` | Bayesian modelling (R) |
+| `Freesurfer version >= 7.40` | FSL and Freesurfer |
 
 All Python dependencies are pinned in the Singularity container via `delta.def`.
 
