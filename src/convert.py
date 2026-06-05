@@ -11,8 +11,7 @@ from pathlib import Path
 
 from state import load_state, save_state, needs_conversion, mark_converted
 
-
-MODALITY_FOLDERS = ["anat", "func", "fmap", "dwi"]
+MODALITY_FOLDERS = ["anat", "func", "fmap", "dwi", "behav"]
 
 
 def init_bids_root(bids_dir: Path, configs_dir: Path) -> None:
@@ -65,7 +64,7 @@ def run_nm_conversion(dicom_dir: Path, bids_dir: Path, subject: str, session: st
     """Run dcm2niix on NM DICOM → bids_dir/sub-XX/ses-XX/nm/. Returns True on success."""
     nm_dicom = find_nm_dicom(dicom_dir)
     if nm_dicom is None:
-        print(f"  NM    no fl3d_mt_tra_tr55 folder found in {dicom_dir}, skipping")
+        print(f"  NM  no fl3d_mt_tra_tr55 folder found in {dicom_dir}, skipping")
         return True
 
     subject_id = subject.removeprefix("sub-")
@@ -81,10 +80,21 @@ def run_nm_conversion(dicom_dir: Path, bids_dir: Path, subject: str, session: st
         "-o", str(nm_out),
         str(nm_dicom),
     ]
-
-    print(f"  NM    {nm_dicom.name} → nm/")
+    print(f"  NM  {nm_dicom.name} → nm/")
     result = subprocess.run(cmd, capture_output=False, text=True)
     return result.returncode == 0
+
+
+def ensure_behav_dir(bids_dir: Path, subject: str, session: str) -> None:
+    """Create the behav/ directory for a subject/session if it does not exist.
+
+    dcm2bids does not create behav/ automatically (no DICOM source maps to it).
+    The directory is created empty here so the BIDS tree is complete and ready
+    for behavioural log files to be placed there manually or by a later step.
+    """
+    behav_dir = bids_dir / subject / session / "behav"
+    behav_dir.mkdir(parents=True, exist_ok=True)
+    print(f"  BEHAV  {behav_dir} (created)")
 
 
 def patch_phasediff_echotimes(bids_dir: Path, subject: str, session: str) -> None:
@@ -138,7 +148,6 @@ def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, sess
         "--output_dir", str(bids_dir),
         "--clobber",
     ]
-
     print(f"  Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False, text=True)
     return result.returncode == 0
@@ -198,6 +207,7 @@ def run_convert(args) -> None:
             success = run_dcm2bids(raw_dir, bids_dir, config, subject, session)
             if success:
                 patch_phasediff_echotimes(bids_dir, subject, session)
+                ensure_behav_dir(bids_dir, subject, session)
                 success = run_nm_conversion(dicom_dir, bids_dir, subject, session)
 
             if success:
