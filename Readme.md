@@ -1,4 +1,4 @@
-# DELTA — the Delat of Language or Data Extraction, Labelling and Transfer Automation 
+# DELTA — the Delta of Language or Data Extraction, Labelling and Transfer Automation 
 
 End-to-end pipeline for MRI/physio conversion, preprocessing, behavioural data processing, first-level GLM analysis, and voxelwise encoding-model analysis. All steps are invoked via the unified `delta` CLI.
 
