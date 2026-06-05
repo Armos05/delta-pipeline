@@ -51,6 +51,45 @@ def build_parser() -> argparse.ArgumentParser:
     phys.add_argument("--force", action="store_true", help="Re-generate even if TSV already exists")
     phys.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
 
+    tr = subparsers.add_parser(
+    "transcribe",
+    help="Manual audio transcription — adds word_response and response_eval to task CSV",
+    )
+    tr.add_argument("--csv",       required=True,
+                    help="Raw task CSV (main_task_data_sub-<id>_...csv)")
+    tr.add_argument("--bank",      required=True,
+                    help="Sentence bank CSV (All_sentences_translated_...csv)")
+    tr.add_argument("--audio-dir", default=None, dest="audio_dir",
+                    help="Directory containing audio response recordings")
+    tr.add_argument("--audio-col", default=None, dest="audio_col",
+                    help="Column in CSV holding the audio filename per trial (optional)")
+    tr.add_argument("--output",    default=None,
+                    help="Output CSV path (default: overwrite input CSV)")
+    tr.add_argument("--redo",      action="store_true",
+                    help="Re-transcribe rows that already have word_response")
+    tr.set_defaults(func=lambda a: __import__("transcribe_responses").run_transcription(a))
+
+    en = subparsers.add_parser(
+    "enrich",
+    help="Compute cloze metrics and correctness; requires word_response from 'delta transcribe'",
+    )
+    en.add_argument("--csv",       required=True, dest="subj_response_csv",
+                    help="Transcribed subject CSV (output of 'delta transcribe')")
+    en.add_argument("--bank",      required=True, dest="sentence_bank_csv",
+                    help="Sentence bank CSV")
+    en.add_argument("--output",    required=True, dest="output_csv",
+                    help="Enriched output CSV path")
+    en.add_argument("--model",     default="gpt2", dest="model_name",
+                    help="HuggingFace causal LM (default: gpt2)")
+    en.add_argument("--cache-dir", default=None,  dest="cache_dir",
+                    help="HuggingFace model cache directory")
+    en.add_argument("--no-gpu",    action="store_true", dest="no_gpu",
+                    help="Force CPU even if GPU is available")
+    en.set_defaults(func=lambda a: __import__("enrich_subject_data").main(
+        a.subj_response_csv, a.sentence_bank_csv, a.output_csv,
+        a.model_name, a.cache_dir, a.no_gpu,
+    ))
+
     fle = subparsers.add_parser("firstlevel-entropy", help="Run first-level GLM (entropy model)")
     fle.add_argument("--bids", required=True, help="BIDS source directory")
     fle.add_argument("--derivatives", required=True, help="Derivatives root")
