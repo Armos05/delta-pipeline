@@ -1,12 +1,14 @@
 # fMRI Quality Control Protocol
 
+You will run these steps after running mriqc and fmriprep.
+
 Step-by-step QC guidelines for fMRI data processed with **MRIQC** and **fMRIPrep**, based on Provins et al. (2023).
 
 ## How to use
 
 1. Open [`fMRI_QC_Decision_Tree.md`](fMRI_QC_Decision_Tree.md) as your reference while inspecting reports.
 2. Record PASS / FLAG / EXCLUDE for each criterion in [`fMRI_QC_Scoresheet.xlsx`](fMRI_QC_Scoresheet.xlsx).
-3. If you need to regenerate the Excel file, run `make_qc_sheet.py` with the `dipy` conda environment.
+3. Finally, you can run calculate_tsnr.py while following the instructions in the main Readme.md file (This will give you a sense of how the signal is in the different parts of the brain)
 
 ## Files
 
