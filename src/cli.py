@@ -12,91 +12,93 @@ from state import load_state, print_status
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog='delta',
-        description='DELTA neuroimaging pipeline: DICOM → BIDS → fMRIPrep → Physio → Analysis',
+        prog="delta",
+        description="DELTA neuroimaging pipeline: DICOM → BIDS → fMRIPrep → Physio → First-Level GLM",
     )
-    subparsers = parser.add_subparsers(dest='command', required=True)
+    subparsers = parser.add_subparsers(dest="command", required=True)
 
-    # ── convert ──────────────────────────────────────────────────────────────
-    conv = subparsers.add_parser('convert', help='Convert DICOM → BIDS (incremental)')
-    conv.add_argument('--raw',      required=True,  help='Raw DICOM root directory')
-    conv.add_argument('--bids',     required=True,  help='BIDS output directory')
-    conv.add_argument('--config',   required=True,  help='dcm2bids config JSON file')
-    conv.add_argument('--subjects', nargs='*', default=None, help='Subject IDs to convert (default: all new)')
-    conv.add_argument('--sessions', nargs='*', default=None, help='Session IDs (default: all)')
-    conv.add_argument('--state',    default='deltastate.json', help='State file path')
-    conv.add_argument('--force',    action='store_true', help='Re-convert even if already done')
-    conv.add_argument('--dry-run',  action='store_true', help='Show what would run, no changes')
+    conv = subparsers.add_parser("convert", help="Convert DICOM → BIDS (incremental)")
+    conv.add_argument("--raw", required=True, help="Raw DICOM root directory")
+    conv.add_argument("--bids", required=True, help="BIDS output directory")
+    conv.add_argument("--config", required=True, help="dcm2bids config JSON file")
+    conv.add_argument("--subjects", nargs="*", default=None, help="Subject IDs to convert (default: all new)")
+    conv.add_argument("--sessions", nargs="*", default=None, help="Session IDs (default: all)")
+    conv.add_argument("--state", default="deltastate.json", help="State file path")
+    conv.add_argument("--force", action="store_true", help="Re-convert even if already done")
+    conv.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
 
-    # ── preprocess ───────────────────────────────────────────────────────────
-    prep = subparsers.add_parser('preprocess', help='Run fMRIPrep on converted subjects')
-    prep.add_argument('--bids',           required=True,  help='BIDS directory')
-    prep.add_argument('--output',         required=True,  help='Derivatives output directory')
-    prep.add_argument('--fmriprep-sif',   default='/mnt/data/docker/fmriprep-25.2.4.sif',
-                      help='Path to fmriprep .sif (default: /mnt/data/docker/fmriprep-25.2.4.sif)')
-    prep.add_argument('--fs-license',     default='/mnt/data/freesurfer/freesurferlicense.txt',
-                      help='FreeSurfer license file')
-    prep.add_argument('--work-dir',       default='tmp/fmriprep_work',
-                      help='fMRIPrep working directory (default: tmp/fmriprep_work)')
-    prep.add_argument('--output-spaces',  default='T1w',
-                      help='fMRIPrep --output-spaces (default: T1w)')
-    prep.add_argument('--subjects', nargs='*', default=None, help='Subject IDs (default: all converted)')
-    prep.add_argument('--state',    default='deltastate.json', help='State file path')
-    prep.add_argument('--force',    action='store_true', help='Re-preprocess even if already done')
-    prep.add_argument('--dry-run',  action='store_true', help='Show what would run, no changes')
-    prep.add_argument('--fs-reconall', action='store_true',
-                      help='Enable FreeSurfer recon-all (disabled by default)')
+    prep = subparsers.add_parser("preprocess", help="Run fMRIPrep on converted subjects")
+    prep.add_argument("--bids", required=True, help="BIDS directory")
+    prep.add_argument("--output", required=True, help="Derivatives output directory")
+    prep.add_argument("--fmriprep-sif", default="/mnt/data/docker/fmriprep-25.2.4.sif", help="Path to fmriprep .sif")
+    prep.add_argument("--fs-license", default="/mnt/data/freesurfer/freesurferlicense.txt", help="FreeSurfer license file")
+    prep.add_argument("--work-dir", default="tmp/fmriprep_work", help="fMRIPrep working directory")
+    prep.add_argument("--output-spaces", default="MNI152NLin2009cAsym_res-2:res-2 T1w", help="fMRIPrep --output-spaces")
+    prep.add_argument("--subjects", nargs="*", default=None, help="Subject IDs (default: all converted)")
+    prep.add_argument("--state", default="deltastate.json", help="State file path")
+    prep.add_argument("--force", action="store_true", help="Re-preprocess even if already done")
+    prep.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
+    prep.add_argument("--fs-reconall", action="store_true", help="Enable FreeSurfer recon-all")
 
-    # ── physio ───────────────────────────────────────────────────────────────
-    phys = subparsers.add_parser(
-        'physio',
-        help='Generate RETROICOR physiological regressors from Siemens .puls/.resp logs',
-    )
-    phys.add_argument('--bids',     required=True, help='BIDS root directory')
-    phys.add_argument('--subjects', nargs='*', default=None,
-                      help='Subject IDs (default: all with physio source data)')
-    phys.add_argument('--sessions', nargs='*', default=None,
-                      help='Session IDs (default: all ses-XX folders per subject)')
-    phys.add_argument('--tasks',    nargs='*', default=['sentencecompletion'],
-                      help='Task labels to process (default: sentencecompletion)')
-    phys.add_argument('--tr',       type=float, default=None,
-                      help='TR in seconds — reads BOLD JSON sidecar if omitted')
-    phys.add_argument('--n-vols',   type=int, default=None, dest='n_vols',
-                      help='Number of volumes — reads NIfTI header if omitted')
-    phys.add_argument('--state',    default='deltastate.json', help='State file path')
-    phys.add_argument('--force',    action='store_true',
-                      help='Re-generate even if TSV already exists')
-    phys.add_argument('--dry-run',  action='store_true', help='Show what would run, no changes')
+    phys = subparsers.add_parser("physio", help="Generate RETROICOR physiological regressors")
+    phys.add_argument("--bids", required=True, help="BIDS root directory")
+    phys.add_argument("--subjects", nargs="*", default=None, help="Subject IDs")
+    phys.add_argument("--sessions", nargs="*", default=None, help="Session IDs")
+    phys.add_argument("--tasks", nargs="*", default=["sentencecompletion"], help="Task labels")
+    phys.add_argument("--tr", type=float, default=None, help="TR in seconds")
+    phys.add_argument("--n-vols", type=int, default=None, dest="n_vols", help="Number of volumes")
+    phys.add_argument("--state", default="deltastate.json", help="State file path")
+    phys.add_argument("--force", action="store_true", help="Re-generate even if TSV already exists")
+    phys.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
 
-    # ── analyze ──────────────────────────────────────────────────────────────
-    anal = subparsers.add_parser('analyze', help='Run a Python or R analysis script')
-    anal.add_argument('--script',      required=True, help='Path to .py or .R script')
-    anal.add_argument('--bids',        default=None,  help='BIDS directory (passed as $BIDS_DIR)')
-    anal.add_argument('--derivatives', default=None,  help='Derivatives dir (passed as $DERIVATIVES_DIR)')
-    anal.add_argument('--args',        nargs=argparse.REMAINDER, default=[],
-                      help='Extra args passed to script')
+    fle = subparsers.add_parser("firstlevel-entropy", help="Run first-level GLM (entropy model)")
+    fle.add_argument("--bids", required=True, help="BIDS source directory")
+    fle.add_argument("--derivatives", required=True, help="Derivatives root")
+    fle.add_argument("--subject", required=True, help="Subject ID")
+    fle.add_argument("--session", default="ses-01", help="Session ID")
+    fle.add_argument("--events-csv", required=True, dest="events_csv", help="Task log CSV")
+    fle.add_argument("--sentences-xlsx", required=True, dest="sentences_xlsx", help="Sentence entropy lookup XLSX")
+    fle.add_argument("--binned-entropy-csv", required=True, dest="binned_entropy_csv", help="TR-binned entropy CSV")
+    fle.add_argument("--prior-csv", required=True, dest="prior_csv", help="HGF posterior CSV")
+    fle.add_argument("--space", default="MNI152NLin2009cAsym_res-2", help="fMRIPrep output space label")
+    fle.add_argument("--gm-mask", default=None, dest="gm_mask", help="Optional brain/GM mask override")
+    fle.add_argument("--output", default=None, help="Output root")
+    fle.add_argument("--force", action="store_true", help="Overwrite existing outputs")
 
-    # ── status ───────────────────────────────────────────────────────────────
-    stat = subparsers.add_parser('status', help='Show conversion/preprocessing status')
-    stat.add_argument('--state', default='deltastate.json', help='State file path')
+    flp = subparsers.add_parser("firstlevel-prior", help="Run first-level GLM (prior model)")
+    flp.add_argument("--bids", required=True, help="BIDS source directory")
+    flp.add_argument("--derivatives", required=True, help="Derivatives root")
+    flp.add_argument("--subject", required=True, help="Subject ID")
+    flp.add_argument("--session", default="ses-01", help="Session ID")
+    flp.add_argument("--events-csv", required=True, dest="events_csv", help="Task log CSV")
+    flp.add_argument("--sentences-xlsx", required=True, dest="sentences_xlsx", help="Sentence entropy lookup XLSX")
+    flp.add_argument("--prior-csv", required=True, dest="prior_csv", help="HGF posterior CSV")
+    flp.add_argument("--space", default="MNI152NLin2009cAsym_res-2", help="fMRIPrep output space label")
+    flp.add_argument("--gm-mask", default=None, dest="gm_mask", help="Optional brain/GM mask override")
+    flp.add_argument("--output", default=None, help="Output root")
+    flp.add_argument("--force", action="store_true", help="Overwrite existing outputs")
 
-    # ── helper ───────────────────────────────────────────────────────────────
-    helper = subparsers.add_parser('helper', help='Explore DICOM headers to build dcm2bids config')
-    helper.add_argument('--dicom',  required=True,          help='DICOM directory for one subject/session')
-    helper.add_argument('--output', default='.helper_output', help='Where to write helper output')
+    anal = subparsers.add_parser("analyze", help="Run an arbitrary Python or R analysis script")
+    anal.add_argument("--script", required=True, help="Path to .py or .R script")
+    anal.add_argument("--bids", default=None, help="BIDS directory (passed as $BIDS_DIR)")
+    anal.add_argument("--derivatives", default=None, help="Derivatives dir (passed as $DERIVATIVES_DIR)")
+    anal.add_argument("--args", nargs=argparse.REMAINDER, default=[], help="Extra args passed to script")
 
-    # ── bids-validator ───────────────────────────────────────────────────────
-    valid = subparsers.add_parser('bids-validator', help='Validate a BIDS directory')
-    valid.add_argument('bids_dir', help='BIDS directory to validate')
-    valid.add_argument('validator_args', nargs=argparse.REMAINDER,
-                       help='Extra flags passed to bids-validator (e.g. --ignoreWarnings)')
+    stat = subparsers.add_parser("status", help="Show conversion/preprocessing status")
+    stat.add_argument("--state", default="deltastate.json", help="State file path")
 
+    helper = subparsers.add_parser("helper", help="Explore DICOM headers to build dcm2bids config")
+    helper.add_argument("--dicom", required=True, help="DICOM directory for one subject/session")
+    helper.add_argument("--output", default=".helper_output", help="Where to write helper output")
+
+    valid = subparsers.add_parser("bids-validator", help="Validate a BIDS directory")
+    valid.add_argument("bids_dir", help="BIDS directory to validate")
+    valid.add_argument("validator_args", nargs=argparse.REMAINDER, help="Extra flags passed to bids-validator")
     return parser
 
 
 def cmd_status(args):
-    state_file = Path(args.state)
-    state = load_state(state_file)
+    state = load_state(Path(args.state))
     print_status(state)
 
 
@@ -115,6 +117,16 @@ def cmd_physio(args):
     run_physio(args)
 
 
+def cmd_first_level_entropy(args):
+    from analyze import run_first_level_entropy
+    run_first_level_entropy(args)
+
+
+def cmd_first_level_prior(args):
+    from analyze import run_first_level_prior
+    run_first_level_prior(args)
+
+
 def cmd_analyze(args):
     from analyze import run_analyze
     run_analyze(args)
@@ -131,19 +143,21 @@ def cmd_validate(args):
 
 
 COMMANDS = {
-    'status':         cmd_status,
-    'convert':        cmd_convert,
-    'preprocess':     cmd_preprocess,
-    'physio':         cmd_physio,
-    'analyze':        cmd_analyze,
-    'helper':         cmd_helper,
-    'bids-validator': cmd_validate,
+    "status": cmd_status,
+    "convert": cmd_convert,
+    "preprocess": cmd_preprocess,
+    "physio": cmd_physio,
+    "firstlevel-entropy": cmd_first_level_entropy,
+    "firstlevel-prior": cmd_first_level_prior,
+    "analyze": cmd_analyze,
+    "helper": cmd_helper,
+    "bids-validator": cmd_validate,
 }
 
 
 def main():
     parser = build_parser()
-    args   = parser.parse_args()
+    args = parser.parse_args()
     handler = COMMANDS.get(args.command)
     if handler is None:
         parser.print_help()
@@ -151,5 +165,5 @@ def main():
     handler(args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
