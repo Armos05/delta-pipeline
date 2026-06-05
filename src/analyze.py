@@ -1,48 +1,45 @@
 """
-analyze.py — Dispatch table for DELTA analysis scripts.
-
-Implemented:
-  firstlevel-entropy — First-level GLM for the sentence-completion entropy model
-  firstlevel-prior   — First-level GLM for the sentence-completion prior model
+analyze.py — updated to include encoding model dispatch
 """
+
+from __future__ import annotations
+
+import subprocess
+import sys
+from pathlib import Path
+
+
+def run_first_level(args) -> None:
+    from first_level_entropy import run_first_level as _run
+    _run(args)
+
+
+def run_encoding_model(args) -> None:
+    from encoding_model import run_encoding_model as _run
+    _run(args)
 
 
 def run_analyze(args) -> None:
-    import os
-    import subprocess
-    import sys
-    from pathlib import Path
-
-    script = Path(args.script).resolve()
+    """Generic script runner (.py → python3, .R → Rscript)."""
+    script = Path(args.script)
     if not script.exists():
-        print(f"ERROR: script not found: {script}")
+        print(f"Script not found: {script}", file=sys.stderr)
         sys.exit(1)
 
-    env = os.environ.copy()
-    if args.bids:
-        env["BIDS_DIR"] = str(Path(args.bids).resolve())
-    if args.derivatives:
-        env["DERIVATIVES_DIR"] = str(Path(args.derivatives).resolve())
+    env_extra = {
+        "BIDS_DIR": str(args.bids),
+        "DERIVATIVES_DIR": str(args.derivatives),
+    }
+    import os
+    env = {**os.environ, **env_extra}
 
-    suffix = script.suffix.lower()
-    if suffix == ".py":
-        cmd = [sys.executable, str(script)] + (args.args or [])
-    elif suffix == ".r":
-        cmd = ["Rscript", str(script)] + (args.args or [])
+    if script.suffix == ".py":
+        cmd = [sys.executable, str(script)]
+    elif script.suffix == ".R":
+        cmd = ["Rscript", str(script)]
     else:
-        print(f"ERROR: unsupported script type '{suffix}' (expected .py or .R)")
+        print(f"Unsupported script type: {script.suffix}", file=sys.stderr)
         sys.exit(1)
 
-    print(f"Running: {' '.join(cmd)}")
-    result = subprocess.run(cmd, env=env)
-    sys.exit(result.returncode)
-
-
-def run_first_level_entropy(args) -> None:
-    from first_level_entropy import run_first_level_entropy as _run
-    _run(args)
-
-
-def run_first_level_prior(args) -> None:
-    from first_level_prior import run_first_level_prior as _run
-    _run(args)
+    cmd += [getattr(args, "script_args", None) or []]
+    subprocess.run(cmd, env=env, check=True)

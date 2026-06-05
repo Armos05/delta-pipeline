@@ -78,6 +78,35 @@ def build_parser() -> argparse.ArgumentParser:
     flp.add_argument("--output", default=None, help="Output root")
     flp.add_argument("--force", action="store_true", help="Overwrite existing outputs")
 
+    enc = subparsers.add_parser("encoding", help="Voxelwise encoding model (listening task)")
+    enc.add_argument("--bids",        required=True)
+    enc.add_argument("--derivatives", required=True)
+    enc.add_argument("--subject",     required=True)
+    enc.add_argument("--session",     default="ses-01")
+    enc.add_argument("--stories",     nargs="+", required=True,
+                    help="All story names, in BOLD-run order")
+    enc.add_argument("--test-stories", nargs="+", required=True, dest="test_stories",
+                    help="Story names reserved for test (remainder = training)")
+    enc.add_argument("--grid-dir",     required=True, dest="grid_dir",
+                    help="Dir containing Praat TextGrid files (.TextGrid)")
+    enc.add_argument("--tr-report-dir", required=True, dest="tr_report_dir",
+                    help="Dir containing TR-timing report files (.report)")
+    enc.add_argument("--model-name",  default="meta-llama/Llama-2-7b-hf", dest="model_name")
+    enc.add_argument("--layer",       type=int, default=16)
+    enc.add_argument("--lookback1",   type=int, default=4,  dest="lookback1")
+    enc.add_argument("--lookback2",   type=int, default=20, dest="lookback2")
+    enc.add_argument("--audio-start-time", type=float, default=0.0, dest="audio_start_time")
+    enc.add_argument("--space",       default="T1w")
+    enc.add_argument("--delays",      nargs="+", type=int, default=[1, 2, 3, 4])
+    enc.add_argument("--n-boots",     type=int, default=15, dest="n_boots")
+    enc.add_argument("--chunk-len",   type=int, default=10, dest="chunk_len")
+    enc.add_argument("--n-chunks",    type=int, default=None, dest="n_chunks")
+    enc.add_argument("--gm-mask",     default=None, dest="gm_mask")
+    enc.add_argument("--cache-dir",   default=None, dest="cache_dir")
+    enc.add_argument("--output",      default=None)
+    enc.add_argument("--force",       action="store_true")
+    enc.set_defaults(func=lambda a: __import__("encoding_model").run_encoding_model(a))
+
     anal = subparsers.add_parser("analyze", help="Run an arbitrary Python or R analysis script")
     anal.add_argument("--script", required=True, help="Path to .py or .R script")
     anal.add_argument("--bids", default=None, help="BIDS directory (passed as $BIDS_DIR)")
