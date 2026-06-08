@@ -182,12 +182,21 @@ anat/
 
 Computes RETROICOR cardiac and respiratory noise regressors from physiological recordings.
 
+NOTE: That the taskname should be the one for which the pulse and resp was acquired, you will find it in the subj and sess folder check the name of the fmri task
+
 ```bash
-delta physio \
-  --bids       /data/bids \
-  --subject    sub-01 \
-  --session    ses-01 \
-  --task       sentencecompletion
+# specific subject + session
+  delta physio \
+    --bids /mnt/nfs/delta_data/DELTA-longitudinal-test/bids_data \
+    --rawdata-dir /mnt/nfs/delta_data/DELTA-longitudinal-test/rawdata \
+    --subjects sub-001 --sessions ses-01 \
+    --tasks sentencecompletion. (#podcast)
+
+  # all subjects/sessions with physio files (auto-discover)
+  delta physio \
+    --bids /mnt/nfs/delta_data/DELTA-longitudinal-test/bids_data \
+    --rawdata-dir /mnt/nfs/delta_data/DELTA-longitudinal-test/rawdata \
+    --tasks sentencecompletion
 ```
 
 **Output** (`bids/sub-01/ses-01/behav/`)
