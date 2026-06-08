@@ -38,12 +38,13 @@ def run_fmriprep(
     subject_id: str,
     output_spaces: str,
     fs_reconall: bool,
+    session_ids: list[str] | None = None,
+    extra_args: list[str] | None = None,
 ) -> bool:
     """Run fMRIPrep for one subject. Returns True on success."""
     runner = _find_apptainer()
     if runner is None:
         print("ERROR: apptainer/singularity not found in PATH.")
-        print("When running inside delta.sif add: --bind /usr/bin/apptainer:/usr/bin/apptainer")
         return False
 
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -66,6 +67,15 @@ def run_fmriprep(
 
     if not fs_reconall:
         cmd.append("--fs-no-reconall")
+
+    if session_ids:
+        for sid in session_ids:
+            cmd += ["--session-id", sid.removeprefix("ses-")]
+
+    if extra_args:
+        # strip leading '--' separator if present
+        args = extra_args[1:] if extra_args[0:1] == ["--"] else extra_args
+        cmd += args
 
     print(f"  Running: {' '.join(cmd)}")
     result = subprocess.run(cmd)
@@ -139,6 +149,8 @@ def run_preprocess(args) -> None:
             subject_id=subject_id,
             output_spaces=args.output_spaces,
             fs_reconall=args.fs_reconall,
+            session_ids=args.sessions,
+            extra_args=args.fmriprep_args,
         )
 
         if success:

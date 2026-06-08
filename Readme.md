@@ -127,6 +127,21 @@ delta preprocess \
   --subject      sub-01 \
   --session      ses-01
 ```
+ 
+  ```bash
+   #### basic — all sessions
+  delta preprocess --bids /mnt/nfs/.../bids_data --output
+  /mnt/nfs/.../derivatives --subject sub-001
+
+  #### specific session
+  delta preprocess --bids /mnt/nfs/.../bids_data --output
+  /mnt/nfs/.../derivatives --subject sub-001 --session ses-01
+
+  #### pass fMRIPrep flags after --
+  delta preprocess --bids /mnt/nfs/.../bids_data --output
+  /mnt/nfs/.../derivatives --subject sub-001 --session ses-01 --
+  --task-id sentencecompletion --use-syn-sdc
+  ```
 
 **fMRIPrep outputs** (`derivatives/fmriprep/sub-01/ses-01/`)
 
