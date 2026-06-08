@@ -44,8 +44,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     phys = subparsers.add_parser("physio", help="Generate RETROICOR physiological regressors")
     phys.add_argument("--bids", required=True, help="BIDS root directory")
-    phys.add_argument("--subjects", nargs="*", default=None, help="Subject IDs")
-    phys.add_argument("--sessions", nargs="*", default=None, help="Session IDs")
+    phys.add_argument("--rawdata-dir", required=True, dest="rawdata_dir", help="Raw data directory containing sub-*/ses-*/*.puls and *.resp files")
+    phys.add_argument("--subjects", nargs="*", default=None, help="Subject IDs (default: all with physio files)")
+    phys.add_argument("--sessions", nargs="*", default=None, help="Session IDs (default: all with physio files)")
     phys.add_argument("--tasks", nargs="*", default=["sentencecompletion"], help="Task labels")
     phys.add_argument("--tr", type=float, default=None, help="TR in seconds")
     phys.add_argument("--n-vols", type=int, default=None, dest="n_vols", help="Number of volumes")

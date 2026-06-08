@@ -10,3 +10,7 @@
 # Behavioural placeholder dirs (populated manually after conversion)
 **/behav
 **/behav/**
+
+# Physio raw logs — Siemens .puls/.resp, not BIDS-standard format
+**/physio
+**/physio/**

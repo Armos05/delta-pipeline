@@ -393,23 +393,30 @@ def build_retroicor_regressors(cardiac_phase: np.ndarray,
 # BIDS helpers
 # ──────────────────────────────────────────────────────────────────────────────
 
-def find_physio_files(bids_root: Path,
-                      subject: str, session: str, task: str,
+def find_physio_files(rawdata_dir: Path,
+                      subject: str, session: str,
                       ) -> tuple[Path | None, Path | None]:
-    """Locate Siemens .puls / .resp files under <subject>/<session>/physio/."""
-    physio_ses = bids_root / subject / session / 'physio'
-    prefix = f'{subject}_{session}_task-{task}'
-
-    puls = next(physio_ses.glob(f'{prefix}*cardiac*physio.puls'), None)
-    resp = next(physio_ses.glob(f'{prefix}*respiratory*physio.resp'), None)
-
-    # Fallback: bare *.puls / *.resp without BIDS recording entity
-    if puls is None:
-        puls = next(physio_ses.glob(f'{prefix}*.puls'), None)
-    if resp is None:
-        resp = next(physio_ses.glob(f'{prefix}*.resp'), None)
-
+    """Find first .puls and .resp file in rawdata_dir/subject/session/."""
+    session_dir = rawdata_dir / subject / session
+    if not session_dir.exists():
+        return None, None
+    puls = next(session_dir.glob('*.puls'), None)
+    resp = next(session_dir.glob('*.resp'), None)
     return puls, resp
+
+
+def discover_physio_sessions(rawdata_dir: Path) -> list[tuple[str, str]]:
+    """Return (subject, session) pairs that have at least one .puls or .resp file."""
+    pairs = []
+    for sub_dir in sorted(rawdata_dir.iterdir()):
+        if not sub_dir.is_dir() or not sub_dir.name.startswith('sub-'):
+            continue
+        for ses_dir in sorted(sub_dir.iterdir()):
+            if not ses_dir.is_dir() or not ses_dir.name.startswith('ses-'):
+                continue
+            if any(ses_dir.glob('*.puls')) or any(ses_dir.glob('*.resp')):
+                pairs.append((sub_dir.name, ses_dir.name))
+    return pairs
 
 
 def read_bold_metadata(bids_root: Path,
@@ -445,13 +452,13 @@ def write_outputs(regressors: np.ndarray,
                   task:       str,
                   tr:         float,
                   n_vols:     int) -> Path:
-    """Write regressor TSV + BIDS JSON sidecar to func/ directory."""
-    func_dir = bids_root / subject / session / 'func'
-    func_dir.mkdir(parents=True, exist_ok=True)
+    """Write regressor TSV + BIDS JSON sidecar to behav/ directory."""
+    behav_dir = bids_root / subject / session / 'behav'
+    behav_dir.mkdir(parents=True, exist_ok=True)
 
     prefix   = f'{subject}_{session}_task-{task}_desc-retroicor_regressors'
-    tsv_path  = func_dir / f'{prefix}.tsv'
-    json_path = func_dir / f'{prefix}.json'
+    tsv_path  = behav_dir / f'{prefix}.tsv'
+    json_path = behav_dir / f'{prefix}.json'
 
     np.savetxt(str(tsv_path), regressors,
                delimiter='\t', header='\t'.join(col_names),
@@ -486,20 +493,17 @@ def process_run(bids_root: Path,
                 subject:   str,
                 session:   str,
                 task:      str,
+                puls_file: Path,
+                resp_file: Path,
                 tr:        float | None = None,
                 n_vols:    int   | None = None) -> Path:
     """Process one fMRI run.  Returns path to the output TSV."""
 
-    print(f'  [{subject}/{session}/task-{task}] Locating physio files…')
-    puls_file, resp_file = find_physio_files(bids_root, subject, session, task)
-
     if puls_file is None or resp_file is None:
-        physio_dir = bids_root / subject / session / 'physio'
         raise FileNotFoundError(
-            f'Physio files not found for {subject}/{session}/task-{task}.\n'
-            f'Expected in: {physio_dir}\n'
-            f'  *recording-cardiac*physio.puls\n'
-            f'  *recording-respiratory*physio.resp'
+            f'Physio files not found for {subject}/{session}.\n'
+            f'  puls: {puls_file}\n'
+            f'  resp: {resp_file}'
         )
 
     bids_tr, bids_n_vols = read_bold_metadata(bids_root, subject, session, task)
@@ -552,59 +556,87 @@ def run_physio(args) -> None:
     """Orchestration function called by cli.py cmd_physio(args)."""
     from state import load_state, save_state, mark_physio_done
 
-    bids_root  = Path(args.bids).resolve()
-    state_file = Path(args.state)
-    state      = load_state(state_file)
+    bids_root    = Path(args.bids).resolve()
+    rawdata_dir  = Path(args.rawdata_dir).resolve()
+    state_file   = Path(args.state)
+    state        = load_state(state_file)
+    tasks        = args.tasks or ['sentencecompletion']
+    force        = args.force
+    dry_run      = args.dry_run
 
-    subjects = (args.subjects or
-                sorted(d.name for d in bids_root.iterdir()
-                       if d.is_dir() and d.name.startswith('sub-')))
+    if not rawdata_dir.exists():
+        print(f'ERROR: rawdata dir not found: {rawdata_dir}')
+        sys.exit(1)
 
-    tasks   = args.tasks or ['sentencecompletion']
-    force   = args.force
-    dry_run = args.dry_run
+    # Build (subject, session) pairs — filter by flags or auto-discover
+    if args.subjects or args.sessions:
+        subjects = args.subjects or sorted(
+            d.name for d in rawdata_dir.iterdir()
+            if d.is_dir() and d.name.startswith('sub-')
+        )
+        sessions = args.sessions
+        pairs = []
+        for subject in subjects:
+            if sessions:
+                pairs += [(subject, s) for s in sessions]
+            else:
+                sub_dir = rawdata_dir / subject
+                if sub_dir.exists():
+                    pairs += [
+                        (subject, d.name)
+                        for d in sorted(sub_dir.iterdir())
+                        if d.is_dir() and d.name.startswith('ses-')
+                    ]
+    else:
+        pairs = discover_physio_sessions(rawdata_dir)
+
+    if not pairs:
+        print('No subjects/sessions with physio files found.')
+        sys.exit(1)
+
+    print(f'\nDELTA Physio — {len(pairs)} session(s) found')
+    print(f'  BIDS:    {bids_root}')
+    print(f'  Rawdata: {rawdata_dir}\n')
 
     done_count = skipped_count = 0
     failed = []
 
-    for subject in subjects:
-        sub_dir = bids_root / subject
-        if not sub_dir.exists():
-            print(f'WARN  {subject} not found in {bids_root}')
+    for subject, session in pairs:
+        puls_file, resp_file = find_physio_files(rawdata_dir, subject, session)
+
+        if puls_file is None and resp_file is None:
+            print(f'SKIP  {subject}/{session} — no .puls/.resp found')
+            skipped_count += 1
             continue
 
-        sessions = (args.sessions or
-                    sorted(d.name for d in sub_dir.iterdir()
-                           if d.is_dir() and d.name.startswith('ses-'))
-                    or ['ses-01'])
+        for task in tasks:
+            run_key = f'{subject}/{session}/task-{task}'
 
-        for session in sessions:
-            for task in tasks:
-                run_key = f'{subject}/{session}/task-{task}'
+            behav_dir = bids_root / subject / session / 'behav'
+            out_tsv   = behav_dir / f'{subject}_{session}_task-{task}_desc-retroicor_regressors.tsv'
 
-                func_dir = bids_root / subject / session / 'func'
-                out_tsv  = (func_dir /
-                            f'{subject}_{session}_task-{task}_desc-retroicor_regressors.tsv')
+            if not force and out_tsv.exists():
+                print(f'SKIP  {run_key} (already exists – use --force to redo)')
+                skipped_count += 1
+                continue
 
-                if not force and out_tsv.exists():
-                    print(f'SKIP  {run_key} (already exists – use --force to redo)')
-                    skipped_count += 1
-                    continue
+            if dry_run:
+                print(f'DRY   {run_key} → {out_tsv}')
+                print(f'        puls: {puls_file}')
+                print(f'        resp: {resp_file}')
+                continue
 
-                if dry_run:
-                    print(f'DRY   {run_key} → {out_tsv}')
-                    continue
-
-                print(f'START {run_key}')
-                try:
-                    process_run(bids_root, subject, session, task,
-                                tr=args.tr, n_vols=args.n_vols)
-                    mark_physio_done(state, subject, session)
-                    save_state(state, state_file)
-                    done_count += 1
-                except Exception as exc:
-                    print(f'FAIL  {run_key}: {exc}')
-                    failed.append(run_key)
+            print(f'START {run_key}')
+            try:
+                process_run(bids_root, subject, session, task,
+                            puls_file=puls_file, resp_file=resp_file,
+                            tr=args.tr, n_vols=args.n_vols)
+                mark_physio_done(state, subject, session)
+                save_state(state, state_file)
+                done_count += 1
+            except Exception as exc:
+                print(f'FAIL  {run_key}: {exc}')
+                failed.append(run_key)
 
     print(f'\n{done_count} done, {skipped_count} skipped, {len(failed)} failed')
     if failed:
@@ -620,23 +652,28 @@ def _build_standalone_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         description='Generate RETROICOR physiological regressors from Siemens logs.'
     )
-    p.add_argument('--bids',    required=True,  help='BIDS root directory')
-    p.add_argument('--subject', required=True,  help='Subject ID (e.g. sub-01)')
-    p.add_argument('--session', default='ses-01', help='Session ID')
-    p.add_argument('--task',    required=True,  help='Task label (e.g. sentencecompletion)')
-    p.add_argument('--tr',      type=float, default=None)
-    p.add_argument('--n-vols',  type=int,   default=None, dest='n_vols')
+    p.add_argument('--bids',        required=True, help='BIDS root directory')
+    p.add_argument('--rawdata-dir', required=True, dest='rawdata_dir', help='Raw data directory')
+    p.add_argument('--subject',     required=True, help='Subject ID (e.g. sub-01)')
+    p.add_argument('--session',     default='ses-01', help='Session ID')
+    p.add_argument('--task',        required=True, help='Task label (e.g. sentencecompletion)')
+    p.add_argument('--tr',          type=float, default=None)
+    p.add_argument('--n-vols',      type=int,   default=None, dest='n_vols')
     return p
 
 
 if __name__ == '__main__':
     parser = _build_standalone_parser()
     args   = parser.parse_args()
+    rawdata_dir = Path(args.rawdata_dir).resolve()
+    puls, resp  = find_physio_files(rawdata_dir, args.subject, args.session)
     process_run(
         bids_root=Path(args.bids).resolve(),
         subject=args.subject,
         session=args.session,
         task=args.task,
+        puls_file=puls,
+        resp_file=resp,
         tr=args.tr,
         n_vols=args.n_vols,
     )

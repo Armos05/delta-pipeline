@@ -76,6 +76,28 @@ delta firstlevel                               │
 
 ## Step-by-step usage
 
+### 0 - STEP ZER0 (the setup)
+  1. First go the `/mnt/nfs/delta_data/DELTA-longitudinal/` folder, this is where your data will sit.
+  2. Copy the scanner folders that you get under the appropriate subj-XXX and ses-XX tag (like sub-001 .. sub-090, and ses-01, ... ses-12).
+  3. All the file such as .dat (from MRS) and .pul and .res which might be outside the folders when you get the data from the scanner just move them inside the subj, session specific folder.
+  4. you should have something like this:
+   
+├── AAhead_scout_1_MR
+├── AAhead_scout_MPR_cor_3_MR
+├── AAhead_scout_MPR_sag_2_MR
+├── AAhead_scout_MPR_tra_4_MR
+├── delta_lang_test_pulse.puls
+├── delta_lang_test_resp.resp
+├── gre_field_mapping_tra_11_MR
+├── gre_field_mapping_tra_12_MR
+├── meas_MID00038_FID03877_FASTESTMAP_Shim.dat
+├── meas_MID00039_FID03878_water_check.dat
+├── meas_MID00040_FID03879_CALIB_Excitation.dat
+├── meas_MID00041_FID03880_CALIB_WSat.dat
+├── meas_MID00042_FID03881_METS_semi_Laser.dat
+├── meas_MID00043_FID03882_Water_Ref.dat
+├── meas_MID00044_FID03883_METS_MEGA_semi_Laser.dat
+
 ### 1 — `delta convert`
 
 Converts DICOM data to BIDS and creates an empty `behav/` folder alongside `anat/`, `func/`, and `fmap/`.
