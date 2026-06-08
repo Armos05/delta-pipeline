@@ -123,6 +123,23 @@ def needs_preprocessing(state: dict, subject: str, session: str,
     return not entry.get('preprocessed', False)
 
 
+def mark_mriqc_done(state: dict, subject: str) -> None:
+    """Record that MRIQC has completed for a subject."""
+    if subject not in state['subjects']:
+        state['subjects'][subject] = {}
+    state['subjects'][subject]['mriqc'] = {
+        'done': True,
+        'mriqc_at': datetime.now().isoformat(),
+    }
+
+
+def needs_mriqc(state: dict, subject: str, force: bool = False) -> bool:
+    """Return True if MRIQC has not yet run for this subject."""
+    if force:
+        return True
+    return not state.get('subjects', {}).get(subject, {}).get('mriqc', {}).get('done', False)
+
+
 def needs_physio(state: dict, subject: str, session: str,
                  force: bool = False) -> bool:
     """Return True if physiological regressors need to be generated."""

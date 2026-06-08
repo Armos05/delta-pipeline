@@ -166,6 +166,23 @@ def build_parser() -> argparse.ArgumentParser:
     valid.add_argument("--bids", required=True, dest="bids_dir", help="BIDS directory to validate")
     valid.add_argument("--ignoreWarnings", action="store_true", dest="ignore_warnings", help="Suppress bids-validator warnings")
     valid.add_argument("validator_args", nargs=argparse.REMAINDER, help="Extra flags passed to bids-validator")
+
+    qc = subparsers.add_parser("mriqc", help="Run MRIQC image quality metrics on BIDS subjects")
+    qc.add_argument("--bids", required=True, help="BIDS directory")
+    qc.add_argument("--derivatives", required=True, help="MRIQC derivatives output directory")
+    qc.add_argument("--mriqc-sif", default="/mnt/nfs/delta_data/Data/containers/mriqc-24.0.2.sif", dest="mriqc_sif", help="Path to mriqc .sif")
+    qc.add_argument("--work-dir", default="tmp/mriqc_work", dest="work_dir", help="MRIQC working directory")
+    qc.add_argument("--subject", nargs="*", default=None, help="Subject IDs (default: all in BIDS dir)")
+    qc.add_argument("--session", nargs="*", default=None, dest="sessions", help="Session IDs to process (default: all)")
+    qc.add_argument("--modalities", nargs="*", default=None, help="Modalities to QC (e.g. T1w bold); default: all")
+    qc.add_argument("--nprocs", type=int, default=None, help="Number of parallel processes")
+    qc.add_argument("--mem-gb", type=float, default=None, dest="mem_gb", help="Memory limit in GB")
+    qc.add_argument("--group", action="store_true", help="Run group-level aggregation after participant QC")
+    qc.add_argument("--state", default="deltastate.json", help="State file path")
+    qc.add_argument("--force", action="store_true", help="Re-run even if already QC'd")
+    qc.add_argument("--dry-run", action="store_true", dest="dry_run", help="Show what would run, no changes")
+    qc.add_argument("mriqc_args", nargs=argparse.REMAINDER, help="Extra flags passed directly to MRIQC (after --)")
+
     return parser
 
 
@@ -214,6 +231,11 @@ def cmd_validate(args):
     run_validate(args)
 
 
+def cmd_mriqc(args):
+    from mriqc import run_mriqc_cmd
+    run_mriqc_cmd(args)
+
+
 COMMANDS = {
     "status": cmd_status,
     "convert": cmd_convert,
@@ -224,6 +246,7 @@ COMMANDS = {
     "analyze": cmd_analyze,
     "helper": cmd_helper,
     "validate": cmd_validate,
+    "mriqc": cmd_mriqc,
 }
 
 

@@ -140,6 +140,36 @@ you can ignore the warning using the `--ignoreWarnings` tags to ignore Warning f
 
 ### 3 — `delta preprocess`
 
+You can first run mriqc before you run fmriprep (or also just run fmriprep)
+
+```bash
+# all subjects, all sessions
+  delta mriqc --bids /mnt/nfs/.../bids_data --derivatives
+  /mnt/nfs/.../derivatives
+
+  # specific subject
+  delta mriqc --bids /mnt/nfs/.../bids_data --derivatives
+  /mnt/nfs/.../derivatives \
+    --subject sub-001
+
+  # specific subject + session
+  delta mriqc --bids /mnt/nfs/.../bids_data --derivatives
+  /mnt/nfs/.../derivatives \
+    --subject sub-001 --session ses-01
+
+  # pass extra MRIQC flags after --
+  delta mriqc --bids /mnt/nfs/.../bids_data --derivatives
+  /mnt/nfs/.../derivatives \
+    --subject sub-001 --session ses-01 -- \
+    --modalities T1w bold --nprocs 8
+
+  # group-level report after participant QC
+  delta mriqc --bids /mnt/nfs/.../bids_data --derivatives
+  /mnt/nfs/.../derivatives --group
+
+```
+
+
 Runs fMRIPrep for one subject/session.
 
 ```bash
