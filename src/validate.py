@@ -32,5 +32,7 @@ def run_validate(args) -> None:
         sys.exit(1)
 
     cmd = [validator, args.bids_dir] + args.validator_args
+    if args.ignore_warnings:
+        cmd.append("--ignoreWarnings")
     result = subprocess.run(cmd)
     sys.exit(result.returncode)

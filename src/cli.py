@@ -159,8 +159,9 @@ def build_parser() -> argparse.ArgumentParser:
     helper.add_argument("--dicom", required=True, help="DICOM directory for one subject/session")
     helper.add_argument("--output", default=".helper_output", help="Where to write helper output")
 
-    valid = subparsers.add_parser("bids-validator", help="Validate a BIDS directory")
-    valid.add_argument("bids_dir", help="BIDS directory to validate")
+    valid = subparsers.add_parser("validate", help="Validate a BIDS directory")
+    valid.add_argument("--bids", required=True, dest="bids_dir", help="BIDS directory to validate")
+    valid.add_argument("--ignoreWarnings", action="store_true", dest="ignore_warnings", help="Suppress bids-validator warnings")
     valid.add_argument("validator_args", nargs=argparse.REMAINDER, help="Extra flags passed to bids-validator")
     return parser
 
@@ -219,7 +220,7 @@ COMMANDS = {
     "firstlevel-prior": cmd_first_level_prior,
     "analyze": cmd_analyze,
     "helper": cmd_helper,
-    "bids-validator": cmd_validate,
+    "validate": cmd_validate,
 }
 
 

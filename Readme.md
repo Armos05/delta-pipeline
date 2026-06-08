@@ -88,7 +88,7 @@ delta convert \
   --session    ses-01
 ```
 
-if you skip the subject and session tag it will run it for all the subjects in the folder and will skip those for which the bids directory already exists, although if you want to force the changes you can use the --force tag
+if you skip the subject and session tag it will run it for all the subjects in the folder and will skip those for which the bids directory already exists, although if you want to force the changes you can use the `--force` tag
 
 **Output structure**
 
@@ -110,6 +110,7 @@ bids/
 ```bash
 delta validate --bids /data/bids
 ```
+you can ignore the warning using the `--ignoreWarnings` tags to ignore Warning from the output.
 
 ---
 

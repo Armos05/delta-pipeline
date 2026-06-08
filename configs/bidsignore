@@ -8,3 +8,8 @@ sub-*/ses-*/mrs/**
 sub-*/ses-*/nm/
 sub-*/ses-*/nm/*
 sub-*/ses-*/nm/**
+
+# Behavioural placeholder dirs (populated manually after conversion)
+sub-*/ses-*/behav/
+sub-*/ses-*/behav/*
+sub-*/ses-*/behav/**
