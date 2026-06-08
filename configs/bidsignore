@@ -1,15 +1,12 @@
 # MRS — non-standard BIDS, handled separately via spec2nii
-sub-*/ses-*/mrs/
-sub-*/ses-*/mrs/*
-sub-*/ses-*/mrs/**
+**/mrs
+**/mrs/**
 **/*.dat
 
 # NM/MT (Neuromelanin) — non-standard BIDS, handled separately via dcm2niix
-sub-*/ses-*/nm/
-sub-*/ses-*/nm/*
-sub-*/ses-*/nm/**
+**/nm
+**/nm/**
 
 # Behavioural placeholder dirs (populated manually after conversion)
-sub-*/ses-*/behav/
-sub-*/ses-*/behav/*
-sub-*/ses-*/behav/**
+**/behav
+**/behav/**

@@ -27,7 +27,7 @@ def init_bids_root(bids_dir: Path, configs_dir: Path) -> None:
 
     ignore_src = configs_dir / "bidsignore"
     ignore_dst = bids_dir / ".bidsignore"
-    if ignore_src.exists() and not ignore_dst.exists():
+    if ignore_src.exists():
         shutil.copy(ignore_src, ignore_dst)
 
 

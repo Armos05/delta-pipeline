@@ -107,6 +107,8 @@ bids/
 
 ### 2 — `delta validate`
 
+Before you run validation copy the `bidsignore` file from the config folder to the bids_folder as `.bidsignore`.
+
 ```bash
 delta validate --bids /data/bids
 ```
