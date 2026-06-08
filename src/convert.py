@@ -150,6 +150,11 @@ def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, sess
     ]
     print(f"  Running: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=False, text=True)
+
+    tmp_dir = bids_dir / "tmp_dcm2bids"
+    if tmp_dir.exists():
+        shutil.rmtree(tmp_dir)
+
     return result.returncode == 0
 
 
