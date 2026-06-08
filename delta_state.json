@@ -49,6 +49,40 @@
         "converted_at": "2026-06-08T19:39:08.611082",
         "preprocessed_at": null,
         "physio_at": null
+      },
+      "ses-01": {
+        "hash": "010aea72c517b05c82ef622367788760",
+        "converted": [
+          "anat",
+          "func",
+          "fmap",
+          "dwi",
+          "behav",
+          "mrs"
+        ],
+        "preprocessed": false,
+        "physio_done": false,
+        "converted_at": "2026-06-08T20:09:04.237542",
+        "preprocessed_at": null,
+        "physio_at": null
+      }
+    },
+    "sub-003": {
+      "ses-01": {
+        "hash": "79c28a839c367ca5993d70f046fabcfb",
+        "converted": [
+          "anat",
+          "func",
+          "fmap",
+          "dwi",
+          "behav",
+          "mrs"
+        ],
+        "preprocessed": false,
+        "physio_done": false,
+        "converted_at": "2026-06-08T20:10:28.004616",
+        "preprocessed_at": null,
+        "physio_at": null
       }
     }
   }
