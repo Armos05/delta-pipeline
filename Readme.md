@@ -81,7 +81,8 @@ delta firstlevel                               │
   2. Copy the scanner folders that you get under the appropriate subj-XXX and ses-XX tag (like sub-001 .. sub-090, and ses-01, ... ses-12).
   3. All the file such as .dat (from MRS) and .pul and .res which might be outside the folders when you get the data from the scanner just move them inside the subj, session specific folder.
   4. you should have something like this:
-   
+
+```
 ├── AAhead_scout_1_MR
 ├── AAhead_scout_MPR_cor_3_MR
 ├── AAhead_scout_MPR_sag_2_MR
@@ -96,7 +97,8 @@ delta firstlevel                               │
 ├── meas_MID00041_FID03880_CALIB_WSat.dat
 ├── meas_MID00042_FID03881_METS_semi_Laser.dat
 ├── meas_MID00043_FID03882_Water_Ref.dat
-├── meas_MID00044_FID03883_METS_MEGA_semi_Laser.dat
+└── meas_MID00044_FID03883_METS_MEGA_semi_Laser.dat
+```
 
 ### 1 — `delta convert`
 
