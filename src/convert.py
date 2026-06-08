@@ -11,7 +11,7 @@ from pathlib import Path
 
 from state import load_state, save_state, needs_conversion, mark_converted
 
-MODALITY_FOLDERS = ["anat", "func", "fmap", "dwi", "behav"]
+MODALITY_FOLDERS = ["anat", "func", "fmap", "dwi", "behav", "mrs"]
 
 
 def init_bids_root(bids_dir: Path, configs_dir: Path) -> None:
@@ -158,6 +158,53 @@ def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, sess
     return result.returncode == 0
 
 
+def find_mrs_files(session_dir: Path) -> list[Path]:
+    """Return meas_*.dat files directly in session_dir (Siemens MRS raw data)."""
+    return sorted(session_dir.glob("meas_*.dat"))
+
+
+def dat_to_bids_acq(dat_file: Path) -> str:
+    """Derive BIDS acq label from Siemens MRS filename.
+
+    meas_MID00042_FID03881_METS_semi_Laser.dat → METSsemiLaser
+    Strips meas_ / MIDxxxxx / FIDxxxxx prefix, removes underscores.
+    """
+    parts = dat_file.stem.split("_")  # stem = filename without .dat
+    return "".join(parts[3:])         # everything after FIDxxxxx
+
+
+def run_mrs_copy(session_dicom_dir: Path, bids_dir: Path, subject: str, session: str) -> bool:
+    """Copy MRS .dat files to bids_dir/sub-XX/ses-XX/mrs/ with BIDS-compliant names.
+
+    Uses svs suffix (Single Voxel Spectroscopy) per BEP-MRS draft.
+    Files are copied as-is — no conversion to NIfTI.
+    Returns True even when no .dat files are found (non-fatal).
+    """
+    mrs_files = find_mrs_files(session_dicom_dir)
+    if not mrs_files:
+        print(f"  MRS  no meas_*.dat files found in {session_dicom_dir}, skipping")
+        return True
+
+    subject_id = subject.removeprefix("sub-")
+    session_id = session.removeprefix("ses-")
+    mrs_out = bids_dir / subject / session / "mrs"
+    mrs_out.mkdir(parents=True, exist_ok=True)
+
+    success = True
+    for dat_file in mrs_files:
+        acq = dat_to_bids_acq(dat_file)
+        out_name = f"sub-{subject_id}_ses-{session_id}_acq-{acq}_svs.dat"
+        dst = mrs_out / out_name
+        try:
+            shutil.copy2(dat_file, dst)
+            print(f"  MRS  {dat_file.name} → mrs/{out_name}")
+        except Exception as e:
+            print(f"  MRS  FAIL {dat_file.name}: {e}")
+            success = False
+
+    return success
+
+
 def run_convert(args) -> None:
     raw_dir = Path(args.dicom_dir).resolve()
     bids_dir = Path(args.bids_dir).resolve()
@@ -214,6 +261,8 @@ def run_convert(args) -> None:
                 patch_phasediff_echotimes(bids_dir, subject, session)
                 ensure_behav_dir(bids_dir, subject, session)
                 success = run_nm_conversion(dicom_dir, bids_dir, subject, session)
+            if success:
+                success = run_mrs_copy(dicom_dir, bids_dir, subject, session)
 
             if success:
                 mark_converted(state, subject, session, dicom_dir, MODALITY_FOLDERS)
