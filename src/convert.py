@@ -154,8 +154,8 @@ def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, sess
 
 
 def run_convert(args) -> None:
-    raw_dir = Path(args.raw).resolve()
-    bids_dir = Path(args.bids).resolve()
+    raw_dir = Path(args.dicom_dir).resolve()
+    bids_dir = Path(args.bids_dir).resolve()
     config = Path(args.config).resolve()
     state_file = Path(args.state)
     force = args.force
@@ -172,9 +172,9 @@ def run_convert(args) -> None:
     init_bids_root(bids_dir, config.parent)
     state = load_state(state_file)
 
-    subjects = args.subjects if args.subjects else discover_subjects(raw_dir)
+    subjects = args.subject if args.subject else discover_subjects(raw_dir)
     if not subjects:
-        print("No subjects found. Check --raw directory structure (expects sub-XX folders).")
+        print("No subjects found. Check --dicom-dir structure (expects sub-XX folders).")
         sys.exit(1)
 
     print(f"\nDELTA Convert — {len(subjects)} subject(s) found")
@@ -188,7 +188,7 @@ def run_convert(args) -> None:
 
     for subject in subjects:
         subject_dir = raw_dir / subject
-        sessions = args.sessions if args.sessions else discover_sessions(subject_dir)
+        sessions = args.session if args.session else discover_sessions(subject_dir)
 
         for session in sessions:
             dicom_dir = subject_dir / session if (subject_dir / session).exists() else subject_dir

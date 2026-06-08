@@ -17,13 +17,14 @@ def build_parser() -> argparse.ArgumentParser:
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
+    _SCRIPT_DIR = Path(__file__).resolve().parent.parent
     conv = subparsers.add_parser("convert", help="Convert DICOM → BIDS (incremental)")
-    conv.add_argument("--raw", required=True, help="Raw DICOM root directory")
-    conv.add_argument("--bids", required=True, help="BIDS output directory")
-    conv.add_argument("--config", required=True, help="dcm2bids config JSON file")
-    conv.add_argument("--subjects", nargs="*", default=None, help="Subject IDs to convert (default: all new)")
-    conv.add_argument("--sessions", nargs="*", default=None, help="Session IDs (default: all)")
-    conv.add_argument("--state", default="deltastate.json", help="State file path")
+    conv.add_argument("--dicom-dir", required=True, dest="dicom_dir", help="Raw DICOM root directory")
+    conv.add_argument("--bids-dir", required=True, dest="bids_dir", help="BIDS output directory")
+    conv.add_argument("--config", default=str(_SCRIPT_DIR / "configs" / "dcm2bids_config.json"), help="dcm2bids config JSON file")
+    conv.add_argument("--subject", nargs="*", default=None, dest="subject", help="Subject IDs to convert (default: all new)")
+    conv.add_argument("--session", nargs="*", default=None, dest="session", help="Session IDs (default: all)")
+    conv.add_argument("--state", default=str(_SCRIPT_DIR / "delta_state.json"), help="State file path")
     conv.add_argument("--force", action="store_true", help="Re-convert even if already done")
     conv.add_argument("--dry-run", action="store_true", help="Show what would run, no changes")
 

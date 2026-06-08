@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "subjects": {
+    "sub-001": {
+      "ses-01": {
+        "hash": "e5d8b6eb9a5d4271f221506bc2f056ef",
+        "converted": [
+          "anat",
+          "func",
+          "fmap",
+          "dwi",
+          "behav"
+        ],
+        "preprocessed": false,
+        "physio_done": false,
+        "converted_at": "2026-06-08T16:25:33.838192",
+        "preprocessed_at": null,
+        "physio_at": null
+      }
+    }
+  }
+}
