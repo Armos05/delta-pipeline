@@ -31,9 +31,9 @@ def build_parser() -> argparse.ArgumentParser:
     prep.add_argument("--bids", required=True, help="BIDS directory")
     prep.add_argument("--output", required=True, help="Derivatives output directory")
     prep.add_argument("--fmriprep-sif", default="/mnt/nfs/delta_data/Data/containers/fmriprep_25.2.5.sif", dest="fmriprep_sif", help="Path to fmriprep .sif")
-    prep.add_argument("--fs-license", default="/mnt/data/freesurfer/freesurferlicense.txt", help="FreeSurfer license file")
+    prep.add_argument("--fs-license", default="/mnt/data/freesurfer/license.txt", help="FreeSurfer license file")
     prep.add_argument("--work-dir", default="tmp/fmriprep_work", help="fMRIPrep working directory")
-    prep.add_argument("--output-spaces", default="MNI152NLin2009cAsym_res-2:res-2 T1w", help="fMRIPrep --output-spaces")
+    prep.add_argument("--output-spaces", default="T1w", help="fMRIPrep --output-spaces (space-separated; 'T1w' = anatomical native)")
     prep.add_argument("--subjects", nargs="*", default=None, help="Subject IDs (default: all converted)")
     prep.add_argument("--session", nargs="*", default=None, dest="sessions", help="Session IDs to process (default: all)")
     prep.add_argument("--state", default="deltastate.json", help="State file path")
@@ -183,6 +183,34 @@ def build_parser() -> argparse.ArgumentParser:
     qc.add_argument("--dry-run", action="store_true", dest="dry_run", help="Show what would run, no changes")
     qc.add_argument("mriqc_args", nargs=argparse.REMAINDER, help="Extra flags passed directly to MRIQC (after --)")
 
+    dwi = subparsers.add_parser("qsiprep", help="Run QSIPrep (diffusion MRI preprocessing) on converted subjects")
+    dwi.add_argument("--bids", required=True, help="BIDS directory")
+    dwi.add_argument("--output", required=True, help="QSIPrep derivatives output directory")
+    dwi.add_argument("--qsiprep-sif", default="/mnt/data/docker/qsiprep-1.1.1.sif", dest="qsiprep_sif", help="Path to qsiprep .sif")
+    dwi.add_argument("--fs-license", default="/mnt/data/freesurfer/license.txt", dest="fs_license", help="FreeSurfer license file")
+    dwi.add_argument("--work-dir", default="tmp/qsiprep_work", dest="work_dir", help="QSIPrep working directory")
+    dwi.add_argument("--output-resolution", type=float, default=2.0, dest="output_resolution", help="Isotropic output resolution in mm (QSIPrep requires this)")
+    dwi.add_argument("--templateflow-home", default="~/.cache/templateflow", dest="templateflow_home", help="Host TemplateFlow cache to bind (--cleanenv wipes the env var); ignored if missing")
+    dwi.add_argument("--subjects", nargs="*", default=None, help="Subject IDs (default: all with dwi/ data)")
+    dwi.add_argument("--session", nargs="*", default=None, dest="sessions", help="Session IDs to process (default: all)")
+    dwi.add_argument("--nprocs", type=int, default=None, help="Number of parallel processes")
+    dwi.add_argument("--omp-nthreads", type=int, default=None, dest="omp_nthreads", help="Threads per process")
+    dwi.add_argument("--mem-mb", type=int, default=None, dest="mem_mb", help="Memory limit in MB")
+    dwi.add_argument("--state", default="deltastate.json", help="State file path")
+    dwi.add_argument("--force", action="store_true", help="Re-run even if already qsiprep'd")
+    dwi.add_argument("--dry-run", action="store_true", dest="dry_run", help="Show what would run, no changes")
+    dwi.add_argument("qsiprep_args", nargs=argparse.REMAINDER, help="Extra flags passed directly to QSIPrep (after --)")
+
+    ts = subparsers.add_parser("tsnr", help="Compute per-region tSNR QC maps for every fMRIPrep BOLD run")
+    ts.add_argument("--derivatives", required=True, help="fMRIPrep derivatives directory to scan")
+    ts.add_argument("--space", default="T1w", help="BOLD space entity to process ('T1w', 'MNI152NLin2009cAsym', or 'native'); default T1w")
+    ts.add_argument("--min-vols", type=int, default=40, dest="min_vols", help="Skip BOLD runs with fewer volumes (false starts / calibration); default 40")
+    ts.add_argument("--fmriprep-sif", default="/mnt/nfs/delta_data/Data/containers/fmriprep_25.2.5.sif", dest="fmriprep_sif", help="fMRIPrep .sif used for poly-2 detrend (nipype/MRIQC method); without it tSNR skips drift removal")
+    ts.add_argument("--subjects", nargs="*", default=None, help="Subject IDs (default: all in derivatives)")
+    ts.add_argument("--fsldir", default="/mnt/data/fsl_new/fsl", help="FSLDIR (needs flirt/fslmaths/fslstats/convert_xfm + Harvard-Oxford atlases)")
+    ts.add_argument("--force", action="store_true", help="Recompute even if the tSNR map already exists")
+    ts.add_argument("--dry-run", action="store_true", dest="dry_run", help="Show what would run, no changes")
+
     return parser
 
 
@@ -236,6 +264,16 @@ def cmd_mriqc(args):
     run_mriqc_cmd(args)
 
 
+def cmd_qsiprep(args):
+    from qsiprep import run_qsiprep_cmd
+    run_qsiprep_cmd(args)
+
+
+def cmd_tsnr(args):
+    from compute_tsnr import run_tsnr_batch
+    run_tsnr_batch(args)
+
+
 COMMANDS = {
     "status": cmd_status,
     "convert": cmd_convert,
@@ -247,6 +285,8 @@ COMMANDS = {
     "helper": cmd_helper,
     "validate": cmd_validate,
     "mriqc": cmd_mriqc,
+    "qsiprep": cmd_qsiprep,
+    "tsnr": cmd_tsnr,
 }
 
 

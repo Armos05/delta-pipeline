@@ -129,6 +129,39 @@ def patch_phasediff_echotimes(bids_dir: Path, subject: str, session: str) -> Non
     print(f"  FMAP  phasediff patched — EchoTime1={et1} EchoTime2={et2}")
 
 
+def patch_intendedfor_legacy(bids_dir: Path, subject: str, session: str) -> None:
+    """Rewrite fmap `IntendedFor` from BIDS-URI form to legacy subject-relative paths.
+
+    dcm2bids 3.2.0 emits `"IntendedFor": "bids::sub-XX/ses-YY/…"`. QSIPrep 1.1.1
+    bundles a universal_pathlib/pybids combo that cannot parse the `bids:` scheme
+    and dies with `ValueError: Protocol not known: 'bids'` during BIDS indexing.
+    Legacy form (path relative to the subject dir, e.g. `ses-YY/dwi/…nii.gz`) is
+    still valid under BIDS 1.9.0 and is understood by every downstream tool.
+    """
+    fmap_dir = bids_dir / subject / session / "fmap"
+    if not fmap_dir.exists():
+        return
+
+    def to_legacy(val):
+        if isinstance(val, list):
+            return [to_legacy(v) for v in val]
+        if isinstance(val, str) and val.startswith("bids::"):
+            rel = val[len("bids::"):]
+            # strip leading "sub-XX/" → path becomes relative to the subject dir
+            return rel.split("/", 1)[1] if rel.startswith(f"{subject}/") else rel
+        return val
+
+    for jf in fmap_dir.glob("*_epi.json"):
+        data = json.loads(jf.read_text())
+        if "IntendedFor" not in data:
+            continue
+        new = to_legacy(data["IntendedFor"])
+        if new != data["IntendedFor"]:
+            data["IntendedFor"] = new
+            jf.write_text(json.dumps(data, indent=2))
+            print(f"  FMAP  {jf.name} IntendedFor → legacy path form")
+
+
 def run_dcm2bids(raw_dir: Path, bids_dir: Path, config: Path, subject: str, session: str) -> bool:
     """Run dcm2bids for one subject/session. Returns True on success."""
     # dcm2bids expects subject ID without the 'sub-' prefix
@@ -259,6 +292,7 @@ def run_convert(args) -> None:
             success = run_dcm2bids(raw_dir, bids_dir, config, subject, session)
             if success:
                 patch_phasediff_echotimes(bids_dir, subject, session)
+                patch_intendedfor_legacy(bids_dir, subject, session)
                 ensure_behav_dir(bids_dir, subject, session)
                 success = run_nm_conversion(dicom_dir, bids_dir, subject, session)
             if success:

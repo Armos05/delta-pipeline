@@ -9,13 +9,6 @@
       }
     },
     {
-      "datatype": "anat",
-      "suffix": "T2w",
-      "criteria": {
-        "SeriesDescription": "t2_haste_sag_scout"
-      }
-    },
-    {
       "datatype": "func",
       "suffix": "bold",
       "custom_entities": "task-podcast",

@@ -426,20 +426,28 @@ def read_bold_metadata(bids_root: Path,
     func_dir = bids_root / subject / session / 'func'
     tr, n_vols = None, None
 
-    bold_json = next(func_dir.glob(f'{subject}_{session}_task-{task}_bold.json'), None)
-    if bold_json and bold_json.exists():
-        meta = json.loads(bold_json.read_text())
-        tr = meta.get('RepetitionTime')
-
-    bold_nii = next(func_dir.glob(f'{subject}_{session}_task-{task}_bold.nii*'), None)
-    if bold_nii:
+    # task-<task>*_bold matches both the plain name and run-tagged names
+    # (task-podcast_run-02_bold). When a task has multiple runs, use the one
+    # with the most volumes (the real run, not aborted/dummy acquisitions).
+    bold_niis = sorted(func_dir.glob(f'{subject}_{session}_task-{task}*_bold.nii*'))
+    best_nii = None
+    for nii in bold_niis:
         try:
             import nibabel as nib
-            img = nib.load(str(bold_nii))
-            if img.ndim == 4:
-                n_vols = img.shape[3]
+            img = nib.load(str(nii))
+            vols = img.shape[3] if img.ndim == 4 else None
         except Exception:
-            pass
+            vols = None
+        if vols is not None and (n_vols is None or vols > n_vols):
+            n_vols, best_nii = vols, nii
+
+    # Read TR from the chosen run's sidecar (fall back to any matching sidecar)
+    if best_nii is not None:
+        bold_json = best_nii.with_name(best_nii.name.split('.nii')[0] + '.json')
+    else:
+        bold_json = next(func_dir.glob(f'{subject}_{session}_task-{task}*_bold.json'), None)
+    if bold_json and bold_json.exists():
+        tr = json.loads(bold_json.read_text()).get('RepetitionTime')
 
     return tr, n_vols
 

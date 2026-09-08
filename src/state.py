@@ -140,6 +140,23 @@ def needs_mriqc(state: dict, subject: str, force: bool = False) -> bool:
     return not state.get('subjects', {}).get(subject, {}).get('mriqc', {}).get('done', False)
 
 
+def mark_qsiprep_done(state: dict, subject: str) -> None:
+    """Record that QSIPrep has completed for a subject."""
+    if subject not in state['subjects']:
+        state['subjects'][subject] = {}
+    state['subjects'][subject]['qsiprep'] = {
+        'done': True,
+        'qsiprep_at': datetime.now().isoformat(),
+    }
+
+
+def needs_qsiprep(state: dict, subject: str, force: bool = False) -> bool:
+    """Return True if QSIPrep has not yet run for this subject."""
+    if force:
+        return True
+    return not state.get('subjects', {}).get(subject, {}).get('qsiprep', {}).get('done', False)
+
+
 def needs_physio(state: dict, subject: str, session: str,
                  force: bool = False) -> bool:
     """Return True if physiological regressors need to be generated."""
